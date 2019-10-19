@@ -1,0 +1,169 @@
+<%= render partial: 'link' %>
+
+<h2>KPI: Overview</h2>
+<div class="container">
+  <%= form_tag '/kpi/index' do %>
+      <%= render partial: 'filter_month' %>
+      <%= submit_tag 'OK' %>
+  <% end %>
+</div>
+<hr/>
+<% if @user && @date_from && @date_to %>
+    <% @kpi_setting  = kpi_finder(@date_from) %>
+    <% @projects = Project.where(id: Setting.plugin_redmine_kpi['presales_project']).map(&:self_and_descendants).flatten.compact %>
+
+    <% hours_billable =  TimeEntry.where(user_id: @user.id).where(project_id: @billable_projects).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+    <% total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+    <% utilization =  total_hours.zero? ? 0 : ((hours_billable.to_f/total_hours).round(3).to_f * 100) %>
+    <% @issue = Issue.find_by_id Setting.plugin_redmine_kpi['issue_for_time_recording'] %>
+    <% average_timerecord = 0 %>
+    <% target_timerecord = 0 %>
+    <% average_presales = 0 %>
+
+    <% month_count = 0 %>
+    <% date_begin = @date_from %>
+    <% date_end = @date_to %>
+    <% violation_time_record = Setting.plugin_redmine_kpi['violation_time_record'].to_i %>
+    <% presales_point_target = 0 %>
+    <script>
+     <% @data.each do |d| %>
+       console.log('<%= d.id %>')
+     <% end %>
+    </script>
+    <% total_hours_estimated =  @data.map{|i| i.estimated_hours || 0 }.sum.round(2) %>
+    <script>
+        console.log('Total hours estimated: <%= total_hours_estimated%>')
+    </script>
+
+    <% total_hours_done =  TimeEntry.where(user_id: @user.id).where(issue_id: @data.pluck(:id) ).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+    <script>
+        console.log('Total hours DONE: <%= total_hours_done %>')
+    </script>
+
+    <% average = total_hours_estimated.zero? ? 0 : ((total_hours_estimated - total_hours_done) * 100 / total_hours_estimated) %>
+  <% profitability = total_hours_estimated.zero? && total_hours_done.zero? ? 200 : average  %>
+    <script>
+        console.log('Average: <%= average%>')
+    </script>
+
+    <% while date_begin < date_end %>
+        <% time_record_point =  kpi_finder(date_begin).time_record_point.to_i %>
+        <% month_count += 1 %>
+
+        <% #For time record %>
+        <% scope = TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', date_begin,  date_begin.end_of_month ) %>
+        <% tes = (scope.where.not(origin_issue_id: nil) + scope.where(origin_issue_id: nil).where(issue_id: @issue.try(:id) )).flatten.compact %>
+        <% average_timerecord += ((violation_time_record - tes.count) < 0 ? 0 : time_record_point  )%>
+        <% target_timerecord +=  time_record_point  %>
+
+
+        <% # Incrementation %>
+        <% date_begin = date_begin.end_of_month + 1.days %>
+    <% end %>
+    <% #For presale %>
+    <% issues  = Issue.joins(:time_entries, :journals).
+        where(time_entries: {user_id: @user.id}).
+        where(project_id: @projects.map(&:id)).
+        where(status_id: Setting.plugin_redmine_kpi['presales_status'] ).
+        where('journals.created_on  = (SELECT MAX(journals.created_on) FROM journals INNER JOIN journal_details ON journal_details.journal_id = journals.id WHERE (journals.journalized_id = issues.id AND journals.journalized_type = "Issue") AND `journal_details`.`prop_key` = "status_id")').
+        where('journals.created_on BETWEEN ? AND ?', @date_from,  @date_to.end_of_month ).uniq
+    %>
+
+    <% presales_point_target =  kpi_finder(date_begin).presales_point.to_i %>
+    <% average_presales += (presales_point_target * issues.length)  %>
+
+    <div style="overflow: hidden; width: 100%">
+      <h2>Utilization</h2>
+      <div class="box_container">
+        <%= render partial: '/kpi/index_partials/show_billables', locals: {utilization: utilization} %>
+      </div>
+      <div class="box_container">
+        <% @support_projects = Project.where(id: Setting.plugin_redmine_kpi['support_projects']).map(&:self_and_descendants).flatten.compact %>
+        <% support_hours_billable =  TimeEntry.where(user_id: @user.id).where(project_id: @support_projects.map(&:id)).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+        <% support_total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+        <% support_utilization =  support_total_hours.zero? ? 0 : ((support_hours_billable.to_f/support_total_hours).round(3).to_f * 100) %>
+
+        <%= render partial: '/kpi/index_partials/show_support_billables', locals: {support_utilization: support_utilization} %>
+      </div>
+      <div class="box_container">
+        <% non_billable_hours =  TimeEntry.where(user_id: @user.id).where.not(project_id: [@support_projects, @billable_projects].flatten.map(&:id)).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+        <% non_billable_total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+        <% non_billable_utilization =  non_billable_total_hours.zero? ? 0 : ((non_billable_hours.to_f/non_billable_total_hours).round(3).to_f * 100) %>
+
+        <%= render partial: '/kpi/index_partials/show_non_billables', locals: {non_billable_utilization: non_billable_utilization} %>
+      </div>
+      <span id="total_future_container">
+
+      </span>
+    </div>
+    <hr/>
+    <div style="overflow: hidden; width: 100%">
+      <div class="box_container">
+        <%= render partial: '/kpi/index_partials/promptness', locals: {utilization: utilization} %>
+      </div>
+      <div class="box_container">
+        <%= render partial: '/kpi/index_partials/profitability',  locals: {average: profitability, total_hours_estimated: total_hours_estimated, total_hours_done: total_hours_done} %>
+      </div>
+      <div class="box_container">
+        <%= render partial: '/kpi/index_partials/support',  locals: {} %>
+      </div>
+      <div class="box_container">
+        <% presales_point =  Setting.plugin_redmine_kpi['max_threshold'] ? (average_presales.to_i.zero? ? 0 : presales_point_target) : average_presales %>
+
+        <%= render partial: '/kpi/index_partials/presales', locals: {presales_point_target: presales_point_target, presales_point: presales_point, average_presales: average_presales} %>
+      </div>
+
+
+      <div class="box_container">
+        <%= render partial: '/kpi/index_partials/time_record', locals: {target_timerecord: target_timerecord,
+                                                                        average_timerecord: average_timerecord,
+                                                                        month_count: month_count} %>
+      </div>
+      <div class="box_container">
+        <%= render partial: '/kpi/index_partials/learning',  locals: {} %>
+      </div>
+      <div class="box_container">
+        <%= render partial: '/kpi/index_partials/certification',  locals: {} %>
+      </div>
+    </div>
+    <div style="overflow: hidden; width: 100%" id="total_container">
+      <div class="box_container" >
+        <%= render partial: '/kpi/index_partials/total',  locals: {utilization: utilization,
+                                                                   presales_point: presales_point,
+                                                                   target_timerecord: target_timerecord,
+                                                                   month_count: month_count,
+                                                                   presales_point_target: presales_point_target,
+                                                                   average_timerecord: average_timerecord,
+                                                                   average_points: params[:average_points],
+                                                                   support_points: params[:support_points],
+                                                                   learning_points: params[:learning],
+                                                                   certification_points: params[:certification],
+                                                                   average: profitability
+
+        } %>
+      </div>
+    </div>
+    <script>
+      $(function(){
+          $('#total_future_container').html(
+          $('#total_container').html()
+          )
+          $('#total_container').html('')
+      })
+    </script>
+
+<% end %>
+<style>
+  .box_container{
+    width: 230px;
+    height: 200px;
+    background-color: lightblue;
+    margin: 10px;
+    display: inline-block;
+    float: left;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: bold;
+    border-radius: 3%;
+  }
+</style>

@@ -1,0 +1,58 @@
+<div class="flash notice" id="notice" style="display:none"></div>
+<div class="flash error" id="error" style="display:none"></div>
+<%= render partial: 'link' %>
+<h2>KPI: Presales</h2>
+<div class="container">
+  <%= form_tag '/kpi/presales' do %>
+      <%= render partial: 'filter_month' %>
+      <%= submit_tag 'OK' %>
+  <% end %>
+</div>
+<hr/>
+<div class="box">
+  <% if @user && @date_from && @date_to %>
+      <% @projects = Project.where(id: Setting.plugin_redmine_kpi['presales_project']).map(&:self_and_descendants).flatten.compact %>
+      <table class="table list">
+        <thead>
+        <tr>
+          <th> Months</th>
+          <th> Task</th>
+          <th> KPI Presales point</th>
+        </tr>
+        </thead>
+        <tbody>
+        <% date_begin = @date_from %>
+        <% date_end = @date_to %>
+
+            <% issues  = Issue.joins(:time_entries, :journals).
+                where(time_entries: {user_id: @user.id}).
+                where(project_id: @projects.map(&:id)).
+                where(status_id: Setting.plugin_redmine_kpi['presales_status'] ).
+                where(
+                    'journals.created_on = (SELECT MAX(journals.created_on)
+                FROM journals
+                INNER JOIN journal_details ON journal_details.journal_id = journals.id
+                WHERE (journals.journalized_id = issues.id AND journals.journalized_type = "Issue")
+                AND `journal_details`.`prop_key` = "status_id")'
+                ).
+                where('journals.created_on BETWEEN ? AND ?', @date_from,  @date_to).uniq
+            %>
+
+            <% issues.each do |issue| %>
+                <tr>
+                  <td><%= issue.journals.last.created_on.to_date.strftime('%B %Y') %></td>
+                  <td><%= link_to_issue issue %></td>
+                  <td class="kpi_point">
+                    <%= kpi_finder(date_begin).presales_point.to_i %>
+                  </td>
+                </tr>
+            <% end %>
+
+        </tbody>
+      </table>
+  <% end %>
+</div>
+
+
+
+

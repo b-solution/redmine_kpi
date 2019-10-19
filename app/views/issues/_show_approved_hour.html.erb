@@ -1,0 +1,10 @@
+<p>
+  <% learning_project = Project.find_by_id(Setting.plugin_redmine_kpi['learning_project']) %>
+  <% learning_tracker = Tracker.find_by_id(Setting.plugin_redmine_kpi['learning_tracker']) %>
+  <% if learning_project && learning_tracker %>
+      <% if @issue.tracker == learning_tracker %>
+      <label>Approved hours (mn):</label> <strong><%= @issue.hour_approved %></strong>
+      <% end %>
+  <% end %>
+
+</p>

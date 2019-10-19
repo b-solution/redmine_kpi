@@ -1,0 +1,115 @@
+<div class="flash notice" id="notice" style="display:none"></div>
+<div class="flash error" id="error" style="display:none"></div>
+<%= render partial: 'link' %>
+<h2>KPI: Learning & Certification</h2>
+<div class="container">
+  <%= form_tag '/kpi/learning' do %>
+      <%= render partial: 'filter_month' %>
+      <%= submit_tag 'OK' %>
+  <% end %>
+</div>
+<hr/>
+<div class="box">
+  <% learning_project = Project.find_by_id(Setting.plugin_redmine_kpi['learning_project']) %>
+  <% learning_tracker = Tracker.find_by_id(Setting.plugin_redmine_kpi['learning_tracker']) %>
+  <% if learning_project && learning_tracker %>
+      <% if @user && @date_from && @date_to %>
+          <%  @kpi_setting  = kpi_finder(@date_from) %>
+          <h2>Learning</h2>
+          <% issues = Issue.where(project_id: learning_project.self_and_descendants.pluck(:id)).where.not(closed_on: nil).
+              joins(:time_entries).
+              where(time_entries: {user_id: @user.id}).
+              where("closed_on BETWEEN ? AND ?", @date_from, @date_to).
+              where(tracker_id: learning_tracker.id).uniq %>
+          <table class="list">
+            <thead>
+            <tr>
+              <td>Id</td>
+              <td>Subject</td>
+              <td>Approved Hours</td>
+            </tr>
+            </thead>
+            <tbody>
+            <% if issues.present? %>
+                <% issues.each do |issue| %>
+                    <tr>
+                      <td> <%= link_to issue.id, issue %></td>
+                      <td> <%= issue.subject %></td>
+                      <td> <%= issue.hour_approved.to_i %> mn</td>
+                    </tr>
+                <% end %>
+            <% else %>
+                <tr><td colspan="3">
+                  <%= l('label_no_data') %>
+                </td></tr>
+            <% end %>
+            </tbody>
+            <tfoot>
+            <tr>
+              <% t = issues.map(&:hour_approved).compact.sum.to_i %>
+              <td colspan="2"> TOTAL</td>
+              <td > <%= t %> mn</td>
+            </tr>
+            <tr>
+              <td colspan="2"> TOTAL Point</td>
+              <% learning_point = @kpi_setting.learning_point %>
+              <td > <%= (t / 600) * learning_point %></td>
+            </tr>
+            </tfoot>
+          </table>
+      <% end %>
+  <% end %>
+</div>
+<div class="box">
+
+  <% certification_project = Project.find_by_id(Setting.plugin_redmine_kpi['certification_project']) %>
+  <% certification_tracker = Tracker.find_by_id(Setting.plugin_redmine_kpi['certification_tracker']) %>
+  <% if certification_project && certification_tracker %>
+      <% if @user && @date_from && @date_to %>
+          <h2>Certification</h2>
+          <% issues = Issue.where(project_id: certification_project.self_and_descendants.pluck(:id)).
+              where.not(closed_on: nil).
+              joins(:time_entries).
+              where(time_entries: {user_id: @user.id}).
+              where("closed_on BETWEEN ? AND ?", @date_from, @date_to).
+              where(tracker_id: certification_tracker.id).uniq %>
+          <table class="list">
+            <thead>
+            <tr>
+              <td>Id</td>
+              <td>Subject</td>
+            </tr>
+            </thead>
+            <tbody>
+            <% if issues.present? %>
+                <% issues.each do |issue| %>
+                    <tr>
+                      <td> <%= link_to issue.id, issue %></td>
+                      <td> <%= issue.subject %></td>
+                    </tr>
+                <% end %>
+            <% else %>
+                <tr><td colspan="2">
+                  <%= l('label_no_data') %>
+                </td></tr>
+            <% end %>
+            </tbody>
+            <tfoot>
+            <tr>
+              <td> TOTAL Certification</td>
+              <td > <%= issues.count %></td>
+            </tr>
+             <tr>
+              <td> TOTAL Point</td>
+               <% certification_point = @kpi_setting.certification_point %>
+              <td > <%= issues.count * certification_point %></td>
+            </tr>
+            </tfoot>
+          </table>
+      <% end %>
+  <% end %>
+</div>
+
+
+
+

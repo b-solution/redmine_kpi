@@ -1,0 +1,27 @@
+<% certification_project = Project.find_by_id(Setting.plugin_redmine_kpi['certification_project']) %>
+<% certification_tracker = Tracker.find_by_id(Setting.plugin_redmine_kpi['certification_tracker']) %>
+<h1>
+  Certification
+</h1>
+<hr/>
+<p>
+  <% points = if certification_project && certification_tracker
+                issues = Issue.where(project_id: certification_project.self_and_descendants.pluck(:id)).
+                    where.not(closed_on: nil).
+                    joins(:time_entries).
+                    where(time_entries: {user_id: @user.id}).
+                    where("closed_on BETWEEN ? AND ?", @date_from, @date_to).
+                    where(tracker_id: certification_tracker.id).uniq
+                issues.count * @kpi_setting.certification_point
+              else
+                0
+              end %>
+  <span style="font-size: 44px;color: <%= get_promptness_color(points.to_i , @kpi_setting.certification_point.to_i )%>" >
+       <% params[:certification] = points %>
+    <%= points %>
+     </span>
+</p>
+
+<h4 style="margin-top: 25px">
+  Target: <%= @kpi_setting.certification_point %>
+</h4>

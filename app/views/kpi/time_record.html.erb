@@ -1,0 +1,73 @@
+<div class="flash notice" id="notice" style="display:none"></div>
+<div class="flash error" id="error" style="display:none"></div>
+<%= render partial: 'link' %>
+<h2>KPI: Time Record Precision</h2>
+<div class="container">
+  <%= form_tag '/kpi/time_record' do %>
+      <%= render partial: 'filter_month' %>
+      <%= submit_tag 'OK' %>
+  <% end %>
+</div>
+<hr/>
+<div class="box">
+  <% if @user && @date_from && @date_to %>
+      <% @issue = Issue.find_by_id Setting.plugin_redmine_kpi['issue_for_time_recording'] %>
+      <table class="table list">
+        <thead>
+        <tr>
+          <th> Months</th>
+          <th> Time recorded count in task <%= Setting.plugin_redmine_kpi['issue_for_time_recording'] %></th>
+          <th> KPI points</th>
+
+        </tr>
+        </thead>
+        <tbody>
+        <% date_begin = @date_from %>
+        <% date_end = @date_to %>
+        <% while date_begin < date_end %>
+        <tr>
+          <td><%= date_begin.to_date.strftime('%B %Y') %></td>
+          <td class="time_recorded">
+            <% scope = TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', date_begin,  date_begin.end_of_month ) %>
+            <% tes = (scope.where.not(origin_issue_id: nil) + scope.where(origin_issue_id: nil).where(issue_id: @issue.try(:id) )).flatten.compact %>
+            <%= tes.count %>
+          </td>
+          <td class="kpi_point">
+            <% time_record_point =  kpi_finder(date_begin).time_record_point.to_i %>
+            <%= (Setting.plugin_redmine_kpi['violation_time_record'].to_i - tes.count) < 0 ? 0 : time_record_point %>
+          </td>
+        </tr>
+            <% date_begin = date_begin.end_of_month + 1.days %>
+        <% end %>
+        </tbody>
+        <tfoot>
+        <tr>
+          <td colspan="2"></td>
+          <td id="kpi_target" class="kpi_target"></td>
+        </tr>
+        </tfoot>
+      </table>
+
+      <script>
+          function calcul_kpi()
+          {
+              kpi = 0
+              for(i=0; i< $('.kpi_point').length; i++)
+              {
+                  p = parseInt($('.kpi_point').text() );
+                  kpi += p
+              }
+              if($('.kpi_point').length == 0)
+                  $('.kpi_target').html('0')
+              else
+                  $('.kpi_target').html((kpi/$('.kpi_point').length).toFixed(2))
+
+          }
+          calcul_kpi()
+      </script>
+  <% end %>
+</div>
+
+
+
+

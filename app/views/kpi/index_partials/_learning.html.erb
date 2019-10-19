@@ -1,0 +1,27 @@
+<% learning_project = Project.find_by_id(Setting.plugin_redmine_kpi['learning_project']) %>
+<% learning_tracker = Tracker.find_by_id(Setting.plugin_redmine_kpi['learning_tracker']) %>
+
+<h1>
+  Learning
+</h1>
+<hr/>
+<% points = if learning_project && learning_tracker
+              issues = Issue.where(project_id: learning_project.self_and_descendants.pluck(:id)).where.not(closed_on: nil).
+                  joins(:time_entries).
+                  where(time_entries: {user_id: @user.id}).
+                  where("closed_on BETWEEN ? AND ?", @date_from, @date_to).
+                  where(tracker_id: learning_tracker.id).uniq
+              (issues.map(&:hour_approved).compact.sum.to_i / 600) * @kpi_setting.learning_point
+            else
+              0
+            end %>
+<p>
+  <span style="font-size: 44px; color: <%= get_promptness_color(points.to_i , @kpi_setting.learning_point.to_i )%>" >
+    <% params[:learning] = points %>
+    <%= points %>
+  </span>
+</p>
+
+<h4 style="margin-top: 25px">
+  Target: <%= @kpi_setting.learning_point %>
+</h4>

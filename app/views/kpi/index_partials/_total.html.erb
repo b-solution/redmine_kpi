@@ -1,0 +1,25 @@
+<h1>
+  Total
+</h1>
+<hr/>
+<p>
+  <% total = (average_points +
+      support_points +
+      draw_profitability_point(@date_from, average) + learning_points + certification_points +
+      (average_timerecord.to_f / month_count)).round(2)
+  %>
+  <% target =  Setting.plugin_redmine_kpi['max_threshold'].present? ? 10 :  (get_target( @date_from, utilization).to_i + presales_point_target.to_i +
+      (target_timerecord.to_f / month_count).to_i).to_i +
+      @kpi_setting.profitability_point + @kpi_setting.learning_point  + @kpi_setting.certification_point %>
+  <% actual = Setting.plugin_redmine_kpi['max_threshold'].present? && total > 10 ? 10 : total %>
+  <% actual += presales_point %>
+  <span style="font-size: 44px; color: <%= get_promptness_color(actual.to_i , target.to_i )%>" >
+
+    <%= actual %>
+</span>
+</p>
+
+<h4 style="margin-top: 25px; " >
+  Target: <%= target %>
+
+</h4>

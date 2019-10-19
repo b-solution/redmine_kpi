@@ -1,0 +1,56 @@
+<% resolved_status = IssueStatus.find_by name: 'Resolved'
+   reopened_status = IssueStatus.find_by name: 'Feedback'
+
+   base_issues = Issue.
+       joins(:time_entries, :journals).
+       joins("INNER JOIN journal_details jd1 ON jd1.journal_id = journals.id").
+       where(time_entries: {user_id: @user.id}, project_id: @support_projects.map(&:id)).
+       where("start_date BETWEEN ? AND ?", @date_from, @date_to).
+       where({jd1: {prop_key: 'status_id', value: resolved_status.id} })
+   issues = base_issues.
+       joins("INNER JOIN journals j ON j.journalized_id = issues.id").
+       joins("INNER JOIN journal_details jd ON jd.journal_id = j.id").
+       where({j: {journalized_type: 'Issue'} }).
+       where({jd: {prop_key: 'status_id'} }).
+       where('jd.id > jd1.id').
+       where({jd: {value: reopened_status.id } }).uniq
+   total_issues = base_issues.uniq
+%>
+<% @kpi_setting  = kpi_finder(@date_from) %>
+<h2>Reopened Tickets</h2>
+<table class="list">
+  <thead>
+  <tr>
+    <th>Id</th>
+    <th>Subject</th>
+  </tr>
+  </thead>
+  <tbody>
+  <% if issues.present? %>
+      <% issues.each do |issue| %>
+          <tr>
+            <td> <%= link_to issue.id, issue %></td>
+            <td> <%= issue.subject %></td>
+          </tr>
+      <% end %>
+  <% else %>
+      <tr><td colspan="2">
+        <%= l('label_no_data') %>
+      </td></tr>
+  <% end %>
+  </tbody>
+  <tfoot>
+  <tr>
+    <td> TOTAL Reopened Tickets</td>
+    <td> <%= issues.count %></td>
+  </tr>
+  <tr>
+    <td> Total Resolved Tickets</td>
+    <td > <%= total_issues.count %> </td>
+  </tr>
+  <tr>
+    <td> Points </td>
+    <td > <%=  total_issues.count.zero? ? '0' : (((issues.count * 100) / total_issues.count ) < 5 ? @kpi_setting.reopened_ticket_point : '0' ) %> </td>
+  </tr>
+  </tfoot>
+</table>

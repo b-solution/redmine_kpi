@@ -1,0 +1,140 @@
+<div class="contextual">
+  <%= link_to l(:button_back), kpi_settings_path,  class: 'icon icon-back' %>
+  <%= link_to l(:button_edit), edit_kpi_setting_path(@kpi_setting),  class: 'icon icon-edit' if @kpi_setting.id == KpiSetting.last.id %>
+  <%= link_to l(:button_delete), kpi_settings_path, method: :delete, data: { confirm: 'Are you sure?' } ,  class: 'icon icon-del' if @kpi_setting.id == KpiSetting.last.id %>
+</div>
+<h2>KPIs Setting </h2>
+<div class="splitcontent box">
+  <p>
+    <strong>Effective date:</strong>
+    <%= @kpi_setting.effective_date %>
+  </p>
+
+  <div style="width: 33%; float:left">
+    <h3>High Utilization</h3>
+    <p>
+      <strong>High utilization</strong>
+      <%= @kpi_setting.high_utilization %>
+    </p>
+
+    <p>
+      <strong>Task finished before deadline:</strong>
+      <%= @kpi_setting.h_task_before_deadline %>
+    </p>
+
+    <p>
+      <strong>Task finished on deadline:</strong>
+      <%= @kpi_setting.h_task_on_deadline %>
+    </p>
+
+    <p>
+      <strong>Task finished after deadline:</strong>
+      <%= @kpi_setting.h_task_after_deadline %>
+    </p>
+
+
+  </div>
+  <div style="width: 33%; float:left;">
+
+
+    <h3 >Normal Utilization</h3>
+
+    <p style="margin-top: 40px">
+      <strong>Task finished before deadline:</strong>
+      <%= @kpi_setting.n_task_before_deadline %>
+    </p>
+
+    <p>
+      <strong>Task finished on deadline:</strong>
+      <%= @kpi_setting.n_task_on_deadline %>
+    </p>
+
+    <p>
+      <strong>Task finished after deadline:</strong>
+      <%= @kpi_setting.n_task_after_deadline %>
+    </p>
+
+
+  </div>
+
+  <div style="width: 33%; float:left">
+    <h3 >Low Utilization</h3>
+    <p>
+      <strong>Low utilization</strong>
+      <%= @kpi_setting.low_utilization %>
+    </p>
+
+
+    <p>
+      <strong>Task finished before deadline:</strong>
+      <%= @kpi_setting.l_task_before_deadline %>
+    </p>
+
+    <p>
+      <strong>Task finished on deadline:</strong>
+      <%= @kpi_setting.l_task_on_deadline %>
+    </p>
+
+    <p>
+      <strong>Task finished after deadline:</strong>
+      <%= @kpi_setting.l_task_after_deadline %>
+    </p>
+  </div>
+
+
+</div>
+<hr/>
+<p>
+  <strong>Time Record Points:</strong>
+  <%= @kpi_setting.time_record_point %>
+</p>
+<p>
+  <strong>Presales Points per Task:</strong>
+  <%= @kpi_setting.presales_point %>
+</p>
+
+
+<hr/>
+<p>
+  <strong>Learning Points:</strong>
+  <%= @kpi_setting.learning_point %>
+</p>
+<p>
+  <strong>Certification Point:</strong>
+  <%= @kpi_setting.certification_point %>
+</p>
+
+<hr/>
+<p>
+  <strong>Profitability Points ( > 25%):</strong>
+  <%= @kpi_setting.profitability_point %>
+</p>
+
+<p>
+  <strong>Profitability Points (< 25% ):</strong>
+  <%= @kpi_setting.profitability_point_inf %>
+</p>
+
+<hr/>
+<p>
+  <strong>Reopened Tickets points (< 5%)</strong>
+  <%= @kpi_setting.reopened_ticket_point %>
+</p>
+<p>
+  <strong>Closed Tickets points (avg < 7 days)</strong>
+  <%= @kpi_setting.closed_ticket_point %>
+</p>
+<p>
+  <strong>Time To Start tickets points ( < 1 day)</strong>
+  <%= @kpi_setting.one_day_started_ticket_point %>
+</p>
+<p>
+  <strong>Time To Start tickets points ( < 2 days)</strong>
+  <%= @kpi_setting.two_day_started_ticket_point %>
+</p>
+<p>
+  <strong>Time To Start tickets points ( < 3 days)</strong>
+  <%= @kpi_setting.three_day_started_ticket_point %>
+
+</p>
+

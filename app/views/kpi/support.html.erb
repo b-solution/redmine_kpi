@@ -1,0 +1,23 @@
+<div class="flash notice" id="notice" style="display:none"></div>
+<div class="flash error" id="error" style="display:none"></div>
+<%= render partial: 'link' %>
+<h2>KPI: Support</h2>
+<div class="container">
+  <%= form_tag '/kpi/support' do %>
+      <%= render partial: 'filter_month' %>
+      <%= submit_tag 'OK' %>
+  <% end %>
+</div>
+<hr/>
+<div class="box">
+
+  <% if @user && @date_from && @date_to %>
+    <%= render partial: '/kpi/support/reopened' %>
+    <%= render partial: '/kpi/support/closed' %>
+    <%= render partial: '/kpi/support/started' %>
+  <% end %>
+</div>
+
+
+
+

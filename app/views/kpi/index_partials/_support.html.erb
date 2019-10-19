@@ -1,0 +1,98 @@
+<h1>
+  Support
+</h1>
+<hr/>
+<%   @support_projects = Project.where(id: Setting.plugin_redmine_kpi['support_projects']).map(&:self_and_descendants).flatten.compact
+
+     resolved_status = IssueStatus.find_by name: "Resolved"
+     reopened_status = IssueStatus.find_by name: 'Feedback'
+
+     base_issues = Issue.
+         joins(:time_entries, :journals).
+         joins("INNER JOIN journal_details jd1 ON jd1.journal_id = journals.id").
+         where(time_entries: {user_id: @user.id}, project_id: @support_projects.map(&:id)).
+         where("start_date BETWEEN ? AND ?", @date_from, @date_to).
+         where({jd1: {prop_key: 'status_id', value: resolved_status.id} })
+     issues = base_issues.
+         joins("INNER JOIN journals j ON j.journalized_id = issues.id").
+         joins("INNER JOIN journal_details jd ON jd.journal_id = j.id").
+         where({j: {journalized_type: 'Issue'} }).
+         where({jd: {prop_key: 'status_id'} }).
+         where('jd.id > jd1.id').
+         where({jd: {value: reopened_status.id } }).uniq
+     total_issues = base_issues.uniq
+%>
+<% @kpi_setting  = kpi_finder(@date_from) %>
+
+<% total_points =  total_issues.count.zero? ? 0 : (((issues.count * 100) /   total_issues.count ) < 5 ? @kpi_setting.reopened_ticket_point : 0 ) %>
+
+<% issues = Issue.where(project_id: @support_projects.map(&:id)).where.not(closed_on: nil).
+    joins(:time_entries).
+    where(time_entries: {user_id: @user.id}).
+    where("closed_on BETWEEN ? AND ?", @date_from, @date_to).uniq %>
+
+<% diff = 0 %>
+<% count_diff = 0 %>
+<% if issues.present? %>
+    <% issues.each do |issue| %>
+        <% diff += (issue.closed_on.to_date - issue.start_date.to_date ).to_i if issue.start_date %>
+        <% count_diff += 1 if issue.start_date %>
+    <% end %>
+<% end %>
+<% closed_ticket_point = @kpi_setting.closed_ticket_point %>
+<% total_points += count_diff.zero? ? 0 : ((diff / count_diff).to_i < 7 ? closed_ticket_point : 0 )%>
+
+
+<% issues = Issue.where(project_id: @support_projects.map(&:id)).
+    joins(:time_entries).
+    where(time_entries: {user_id: @user.id}).
+    where("start_date BETWEEN ? AND ?", @date_from, @date_to).uniq %>
+
+<% support_hours_billable =  TimeEntry.where(user_id: @user.id).where(project_id: @support_projects.map(&:id)).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+<% support_total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+<% support_utilization =  support_total_hours.zero? ? 0 : ((support_hours_billable.to_f/support_total_hours).round(3).to_f * 100) %>
+
+<% diff = 0 %>
+<% count_diff = 0 %>
+<% if issues.present? %>
+    <% issues.each do |issue| %>
+        <% journal = issue.journals.where(user_id: @user.id).first %>
+        <% if journal %>
+            <% diff += (journal.created_on.to_date - issue.start_date.to_date).to_i if issue.start_date %>
+            <% count_diff += 1 %>
+        <% end %>
+    <% end %>
+<% end %>
+<% if count_diff.zero? %>
+<% else %>
+    <% if (diff / count_diff).to_i < 1 %>
+        <% total_points += @kpi_setting.one_day_started_ticket_point %>
+    <% elsif (diff / count_diff).to_i < 2 %>
+        <% total_points += @kpi_setting.two_day_started_ticket_point %>
+    <% elsif (diff / count_diff).to_i < 3 %>
+        <% total_points += @kpi_setting.three_day_started_ticket_point %>
+    <% else %>
+    <% end %>
+<% end %>
+
+<% support_points =  if support_utilization < 30
+                       total_points.to_f * 0.3
+                     elsif support_utilization < 50
+                       total_points.to_f * 0.5
+                     else
+                       total_points
+                     end
+
+
+%>
+<% params[:support_points] = support_points %>
+
+<p>
+  <span style="font-size: 44px; color: <%= get_support_color(support_points, ( @kpi_setting.reopened_ticket_point + @kpi_setting.closed_ticket_point + @kpi_setting.one_day_started_ticket_point ) ) %>"  >
+  <%= support_points.round(3) %>
+</span>
+</p>
+
+<h4 style="margin-top: 25px">
+  Target: <%= @kpi_setting.reopened_ticket_point + @kpi_setting.closed_ticket_point + @kpi_setting.one_day_started_ticket_point %>
+</h4>

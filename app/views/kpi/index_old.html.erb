@@ -1,0 +1,241 @@
+<%= render partial: 'link' %>
+
+<h2>KPI: Overview</h2>
+<div class="container">
+  <%= form_tag '/kpi/index' do %>
+      <%= render partial: 'filter_month' %>
+      <%= submit_tag 'OK' %>
+  <% end %>
+</div>
+<hr/>
+<div class="box">
+
+  <% if @user && @date_from && @date_to %>
+      <% @kpi_setting  = kpi_finder(@date_from) %>
+      <% @projects = Project.where(id: Setting.plugin_redmine_kpi['presales_project']).map(&:self_and_descendants).flatten.compact %>
+
+      <% hours_billable =  TimeEntry.where(user_id: @user.id).where(project_id: @billable_projects).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+      <% total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+      <% utilization =  total_hours.zero? ? 0 : ((hours_billable.to_f/total_hours).round(3).to_f * 100) %>
+      <% @issue = Issue.find_by_id Setting.plugin_redmine_kpi['issue_for_time_recording'] %>
+      <% average_timerecord = 0 %>
+      <% target_timerecord = 0 %>
+      <% average_presales = 0 %>
+
+      <% month_count = 0 %>
+      <% date_begin = @date_from %>
+      <% date_end = @date_to %>
+      <% violation_time_record = Setting.plugin_redmine_kpi['violation_time_record'].to_i %>
+      <% presales_point = 0 %>
+
+      <% total_hours_estimated =  @data.sum(:estimated_hours).round(2) %>
+      <% total_hours_estimated = 1 if total_hours_estimated.zero? %>
+      <% total_hours_done =  TimeEntry.where(user_id: @user.id).where(issue_id: @data.pluck(:id) ).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+      <% average =  ((total_hours_estimated - total_hours_done) * 100 / total_hours_estimated) %>
+
+
+      <% while date_begin < date_end %>
+          <% time_record_point =  kpi_finder(date_begin).time_record_point.to_i %>
+          <% month_count += 1 %>
+
+          <% #For time record %>
+          <% scope = TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', date_begin,  date_begin.end_of_month ) %>
+          <% tes = (scope.where.not(origin_issue_id: nil) + scope.where(origin_issue_id: nil).where(issue_id: @issue.try(:id) )).flatten.compact %>
+          <% average_timerecord += ((violation_time_record - tes.count) < 0 ? 0 : time_record_point  )%>
+          <% target_timerecord +=  time_record_point  %>
+
+          <% #For presale %>
+          <% issues  = Issue.joins(:time_entries, :journals).
+              where(time_entries: {user_id: @user.id}).
+              where(project_id: @projects.map(&:id)).
+              where(status_id: Setting.plugin_redmine_kpi['presales_status'] ).
+              where('journals.created_on  = (SELECT MAX(journals.created_on) FROM journals INNER JOIN journal_details ON journal_details.journal_id = journals.id WHERE (journals.journalized_id = issues.id AND journals.journalized_type = "Issue") AND `journal_details`.`prop_key` = "status_id")').
+              where('journals.created_on BETWEEN ? AND ?', date_begin,  date_begin.end_of_month ).uniq
+          %>
+
+          <% presales_point =  kpi_finder(date_begin).presales_point.to_i %>
+          <% average_presales += (presales_point * issues.length)  %>
+          <% # Incrementation %>
+          <% date_begin = date_begin.end_of_month + 1.days %>
+      <% end %>
+      <% #For promptness %>
+      <table class="table list">
+        <thead>
+        <tr>
+          <th></th>
+          <th>Target Promptness : <%=  get_target( @date_from, utilization)  %></th>
+          <th>Target Time recording Precision : <%= (target_timerecord.to_f / month_count).round(3) %> </th>
+          <th>Target Presales <%= presales_point %> </th>
+          <th>Certification: <%= @kpi_setting.certification_point %> </th>
+          <th>Learning: <%= @kpi_setting.learning_point %> </th>
+          <th>Profitability: <%= @kpi_setting.profitability_point %>  </th>
+          <th>  </th>
+          <th>  </th>
+          <th>Support:  <%= @kpi_setting.reopened_ticket_point + @kpi_setting.closed_ticket_point + @kpi_setting.one_day_started_ticket_point %> </th>
+          <th>TOTAL: <%=( get_target( @date_from, utilization).to_i + presales_point.to_i +
+              (target_timerecord.to_f / month_count).to_i).to_i +
+                            @kpi_setting.profitability_point + @kpi_setting.learning_point  + @kpi_setting.certification_point %></th>
+        </tr>
+        <tr>
+          <th>Billable Utilization</th>
+          <th>Promptness Points</th>
+          <th>Time Record Precision Points</th>
+          <th>Presales Points</th>
+          <th>Certification</th>
+          <th>Learning</th>
+          <th>Profitability</th>
+          <th>Support Utilization</th>
+          <th>Non Billable Utilization</th>
+          <th>Support</th>
+          <th>KPI Total Points</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td>   <span style=" color: <%= draw_utilization_color(@date_from, utilization)  %>">
+          <%= utilization.round(3) %> %
+       </span></td>
+          <% average_points = 0 %>
+          <% @data.each do |issue| %>
+              <% deadline = issue.custom_field_values.detect{|cf| cf.custom_field.id == Setting.plugin_redmine_kpi['deadline_custom_field'].to_i} %>
+              <% if deadline.blank? or  deadline.value.blank?   %>
+                  <%  point =  lowest_point(@date_from) %>
+                  <% average_points +=  point %>
+              <% else %>
+                  <% diff = (issue.time_entries.last.spent_on - deadline.value.to_date).to_i if deadline.present? %>
+                  <% point =  calculate_points(diff, @date_from, utilization) %>
+                  <% average_points +=  point %>
+              <% end %>
+          <% end %>
+          <% average_points = @data.count > 0 ? average_points.to_f/@data.count : 0 %>
+          <td style="color: <%= get_promptness_color(average_points, get_target( @date_from, utilization)) %>">
+            <%= average_points.round(2) %>
+          </td>
+
+          <td style="color: <%= get_promptness_color(average_timerecord.to_i , target_timerecord.to_i )%>">
+            <%= (average_timerecord.to_f / month_count).round(3) %></td>
+
+
+          <% t =  Setting.plugin_redmine_kpi['max_threshold'] ? (average_presales.to_i.zero? ? 0 : presales_point) : average_presales %>
+
+          <td style="color: <%= t > 0 ? 'green' : 'red' %>" >
+            <%= t %></td>
+          <td ><% learning_project = Project.find_by_id(Setting.plugin_redmine_kpi['learning_project']) %>
+            <% learning_tracker = Tracker.find_by_id(Setting.plugin_redmine_kpi['learning_tracker']) %>
+            <% if learning_project && learning_tracker %>
+                <% issues = Issue.where(project_id: learning_project.self_and_descendants.pluck(:id)).where.not(closed_on: nil).
+                    where(assigned_to_id: @user.id).
+                    where("closed_on BETWEEN ? AND ?", @date_from, @date_to).
+                    where(tracker_id: learning_tracker.id) %>
+                <%= (issues.map(&:hour_approved).compact.sum.to_i / 600) * @kpi_setting.learning_point  %>
+            <% end %>
+          </td>
+          <% certification_project = Project.find_by_id(Setting.plugin_redmine_kpi['certification_project']) %>
+          <% certification_tracker = Tracker.find_by_id(Setting.plugin_redmine_kpi['certification_tracker']) %>
+          <td >
+            <% if certification_project && certification_tracker %>
+                <% issues = Issue.where(project_id: certification_project.self_and_descendants.pluck(:id)).
+                    where.not(closed_on: nil).
+                    where(assigned_to_id: @user.id).
+                    where("closed_on BETWEEN ? AND ?", @date_from, @date_to).
+                    where(tracker_id: certification_tracker.id) %>
+                <%= issues.count * @kpi_setting.certification_point  %>
+            <% end %>
+          </td>
+          <td><%=  draw_profitability_point(@date_from, average)  %></td>
+          <td>
+
+            <%   @support_projects = Project.where(id: Setting.plugin_redmine_kpi['support_projects']).map(&:self_and_descendants).flatten.compact
+
+                 resolved_status = IssueStatus.find_by name: "Resolved"
+                 reopened_status = IssueStatus.where(is_closed: false).pluck(:id).reject{|ss| ss == resolved_status.id}
+
+                 base_issues = Issue.
+                     joins(:journals=> [:details]).
+                     where(project_id: @support_projects.map(&:id), assigned_to_id: @user.id).
+                     where("start_date BETWEEN ? AND ?", @date_from, @date_to).
+                     where({journal_details: {prop_key: 'status_id', value: resolved_status.id} })
+                 issues = base_issues.joins("INNER JOIN journal_details jd ON jd.journal_id = journals.id").
+                     where("jd.id > journal_details.id").
+                     where({jd: {value: reopened_status } }).uniq
+                 total_issues = base_issues.uniq
+            %>
+            <% @kpi_setting  = kpi_finder(@date_from) %>
+
+            <% total_points =  total_issues.count.zero? ? 0 : (((issues.count * 100) /   total_issues.count ) < 5 ? @kpi_setting.reopened_ticket_point : 0 ) %>
+
+            <% issues = Issue.where(project_id: @support_projects.map(&:id)).where.not(closed_on: nil).
+                where(assigned_to_id: @user.id).
+                where("closed_on BETWEEN ? AND ?", @date_from, @date_to) %>
+
+            <% diff = 0 %>
+            <% count_diff = 0 %>
+            <% if issues.present? %>
+                <% issues.each do |issue| %>
+                    <% diff += (issue.closed_on.to_date - issue.start_date.to_date ).to_i if issue.start_date %>
+                    <% count_diff += 1 if issue.start_date %>
+                <% end %>
+            <% end %>
+            <% closed_ticket_point = @kpi_setting.closed_ticket_point %>
+            <% total_points += count_diff.zero? ? 0 : ((diff / count_diff).to_i < 7 ? closed_ticket_point : 0 )%>
+
+
+            <% issues = Issue.where(project_id: @support_projects.map(&:id)).
+                where(assigned_to_id: @user.id).
+                where("start_date BETWEEN ? AND ?", @date_from, @date_to) %>
+
+            <% support_hours_billable =  TimeEntry.where(user_id: @user.id).where(project_id: @support_projects.map(&:id)).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+            <% support_total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+            <% support_utilization =  support_total_hours.zero? ? 0 : ((support_hours_billable.to_f/support_total_hours).round(3).to_f * 100) %>
+
+
+            <% non_billable_hours =  TimeEntry.where(user_id: @user.id).where.not(project_id: [@support_projects, @billable_projects].flatten.map(&:id)).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+            <% non_billable_total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+            <% non_billable_utilization =  non_billable_total_hours.zero? ? 0 : ((non_billable_hours.to_f/non_billable_total_hours).round(3).to_f * 100) %>
+
+
+            <% diff = 0 %>
+            <% count_diff = 0 %>
+            <% if issues.present? %>
+                <% issues.each do |issue| %>
+                    <% journal = issue.journals.where(user_id: @user.id).first %>
+                    <% if journal %>
+                        <% diff += (journal.created_on.to_date - issue.start_date.to_date).to_i if issue.start_date %>
+                        <% count_diff += 1 %>
+                    <% end %>
+                <% end %>
+            <% end %>
+            <% if count_diff.zero? %>
+            <% else %>
+                <% if (diff / count_diff).to_i < 1 %>
+                    <% total_points += @kpi_setting.one_day_started_ticket_point %>
+                <% elsif (diff / count_diff).to_i < 2 %>
+                    <% total_points += @kpi_setting.two_day_started_ticket_point %>
+                <% elsif (diff / count_diff).to_i < 3 %>
+                    <% total_points += @kpi_setting.three_day_started_ticket_point %>
+                <% else %>
+                <% end %>
+            <% end %>
+            <% support_points =  if support_utilization < 30
+                                   total_points.to_f * 0.3
+                                 elsif support_utilization < 50
+                                   total_points.to_f * 0.5
+                                 else
+                                   total_points
+                                  end
+
+
+            %>
+            <%= support_utilization.round(3) %> %
+          </td><td>
+           <%= non_billable_utilization.round(3) %> %
+          </td><td>
+            <%= support_points.round(3) %>
+          </td>
+          <td><%= (t + average_points + support_points + draw_profitability_point(@date_from, average)+ (average_timerecord.to_f / month_count)).round(3)  %></td>
+        </tr>
+        </tbody>
+      </table>
+  <% end %>
+
+</div>

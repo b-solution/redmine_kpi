@@ -1,0 +1,150 @@
+<script>
+    $('h2').html("<h2><a href=\"/admin/plugins\">Plugins</a> » Redmine KPI plugin</h2>")
+</script>
+<fieldset>
+  <legend>Threshold</legend>
+  <p>
+    <strong>
+      Maximum threshold (10 points MAX)
+    </strong>
+    <%= check_box_tag "settings[max_threshold]", true, @settings['max_threshold'] %>
+  </p>
+</fieldset>
+<fieldset>
+  <legend>Promptness</legend>
+  <p>
+    <strong>
+      KPI applied status
+    </strong>
+    <%= select_tag "settings[issues_status]", options_for_select(IssueStatus.all.map{|i| [i.name, i.id]}, selected: @settings['issues_status']), {multiple: true} %>
+  </p>
+
+  <p>
+    <strong>
+      Deadline CustomField
+    </strong>
+    <%= select_tag "settings[deadline_custom_field]", options_for_select(IssueCustomField.where(field_format: ['date', 'datetime']).map{|icf| [icf.name, icf.id]}, selected: @settings['deadline_custom_field']), {include_blank: true} %>
+  </p>
+
+  <p>
+    <strong>
+      KPI applied project
+    </strong>
+    <%= select_tag "settings[billable_projects]", project_tree_options_for_select(Project.all, :selected => Project.where(id: @settings['billable_projects'])), {multiple: true} %>
+  </p>
+
+</fieldset>
+<fieldset>
+  <legend>Time Recording Precision</legend>
+  <p>
+
+    <strong>
+      KPI Time recorded issue
+    </strong>
+    <%= text_field_tag "settings[issue_for_time_recording]", @settings['issue_for_time_recording']%>
+  </p>
+  <p>
+
+    <strong>
+     Approval CustomField
+    </strong>
+    <%= select_tag "settings[approval_custom_field]", options_for_select(TimeEntryCustomField.where(field_format: ['bool']).map{|icf| [icf.name, icf.id]}, selected: @settings['approval_custom_field']), {include_blank: true} %>
+  </p>
+  <p>
+
+    <strong>
+      Violation number in time record
+    </strong>
+    <%= text_field_tag "settings[violation_time_record]", @settings['violation_time_record']%>
+  </p>
+  <script>
+      observeAutocompleteField('settings_issue_for_time_recording',
+          function(request, callback) {
+              var url = '<%= j auto_complete_issues_path %>';
+              var data = {
+                  term: request.term
+              };
+
+              data['scope'] = 'all';
+
+
+              $.get(url, data, null, 'json')
+                  .done(function(data){
+                      callback(data);
+                  })
+                  .fail(function(jqXHR, status, error){
+                      callback([]);
+                  });
+          },
+          {
+              select: function(event, ui) {
+                  $('#settings_issue_for_time_recording').val(ui.item.value).change();
+              }
+          }
+      );
+  </script>
+</fieldset>
+<fieldset>
+  <legend>Presales</legend>
+  <p>
+    <strong>
+      KPI WON status
+    </strong>
+    <%= select_tag "settings[presales_status]", options_for_select(IssueStatus.all.map{|i| [i.name, i.id]}, selected: @settings['presales_status']), {multiple: false} %>
+  </p>
+  <p>
+    <strong>
+      KPI Presales project
+    </strong>
+    <%= select_tag "settings[presales_project]", project_tree_options_for_select(Project.all, :selected => Project.where(id: @settings['presales_project'])), {multiple: true} %>
+  </p>
+
+</fieldset>
+
+<fieldset>
+  <legend>Learning & Certification</legend>
+
+  <p>
+    <strong>
+      KPI Learning project
+    </strong>
+    <%= select_tag "settings[learning_project]", project_tree_options_for_select(Project.all, :selected => Project.where(id: @settings['learning_project'])) %>
+  </p>
+
+  <p>
+    <strong>
+      KPI Learning Tracker
+    </strong>
+    <%= select_tag "settings[learning_tracker]", options_for_select(Tracker.all.map{|t| [t.name, t.id]}, :selected =>  @settings['learning_tracker']) %>
+  </p>
+
+  <p>
+    <strong>
+      KPI Certification project
+    </strong>
+    <%= select_tag "settings[certification_project]", project_tree_options_for_select(Project.all, :selected => Project.where(id: @settings['certification_project'])) %>
+  </p>
+
+
+  <p>
+    <strong>
+      KPI Certification Tracker
+    </strong>
+    <%= select_tag "settings[certification_tracker]", options_for_select(Tracker.all.map{|t| [t.name, t.id]}, :selected =>  @settings['certification_tracker']) %>
+  </p>
+</fieldset>
+
+<fieldset>
+  <legend>Support Projects</legend>
+  <p>
+    <strong>
+      KPI Support project
+    </strong>
+    <%= select_tag "settings[support_projects]", project_tree_options_for_select(Project.all, :selected => Project.where(id: @settings['support_projects'])), {multiple: true} %>
+  </p>
+
+</fieldset>
+
+
+
+

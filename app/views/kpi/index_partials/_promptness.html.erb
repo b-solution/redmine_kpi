@@ -1,0 +1,30 @@
+<% average_points = 0 %>
+<% @data.each do |issue| %>
+    <% deadline = issue.custom_field_values.detect{|cf| cf.custom_field.id == Setting.plugin_redmine_kpi['deadline_custom_field'].to_i} %>
+    <% if deadline.blank? or  deadline.value.blank?   %>
+        <%  point =  lowest_point(@date_from) %>
+        <% average_points +=  point %>
+    <% else %>
+        <% diff = (issue.time_entries.last.spent_on - deadline.value.to_date).to_i if deadline.present? %>
+        <% point =  calculate_points(diff, @date_from, utilization) %>
+        <% average_points +=  point %>
+    <% end %>
+<% end %>
+<% average_points = @data.count > 0 ? average_points.to_f/@data.count : 0
+
+params[:average_points] = average_points%>
+<h1>
+  Promptness
+</h1>
+<hr/>
+<p>
+
+  <span style="font-size: 44px; color: <%= get_promptness_color(average_points, get_target( @date_from, utilization)) %>">
+  <%= average_points.round(2) %>
+
+</span>
+</p>
+
+<h4 style="margin-top: 25px">
+  Target: <%= get_target( @date_from, utilization) %>
+</h4>

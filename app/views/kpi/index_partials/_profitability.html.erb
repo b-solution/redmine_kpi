@@ -1,0 +1,13 @@
+<h1>
+  Profitability
+</h1>
+<hr/>
+<p>
+  <span style="font-size: 44px;  color: <%= get_support_color(draw_profitability_point(@date_from, average), @kpi_setting.profitability_point  ) %>"  >
+    <%= draw_profitability_point(@date_from, average)  %>
+  </span>
+</p>
+
+<h4 style="margin-top: 25px">
+  Target: <%= @kpi_setting.profitability_point %>
+</h4>

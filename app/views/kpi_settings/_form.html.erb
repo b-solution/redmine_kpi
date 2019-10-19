@@ -1,0 +1,173 @@
+<%= form_for(@kpi_setting) do |f| %>
+    <% if @kpi_setting.errors.any? %>
+        <div id="error_explanation">
+          <h2><%= pluralize(@kpi_setting.errors.count, "error") %> prohibited this kpi_setting from being saved:</h2>
+
+          <ul>
+            <% @kpi_setting.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+    <% end %>
+
+    <div class="field">
+      <%= f.label 'Effective Date' %><br>
+      <%= f.date_select :effective_date %>
+    </div>
+    <fieldset>
+      <legend>Promptness</legend>
+      <div class="container">
+        <div class="splitcontent">
+
+          <div style="width: 33%; float:left">
+            <h3>High Utilization</h3>
+            <div class="field">
+              <%= f.label :high_utilization %> (MIN High-Beginning => 100%)<br>
+              <%= f.number_field :high_utilization %>
+            </div>
+            <div class="field">
+              <%= f.label :task_finished_before_deadline %><br>
+              <%= f.number_field :h_task_before_deadline %>
+            </div>
+            <div class="field">
+              <%= f.label :task_finished_on_deadline %><br>
+              <%= f.number_field :h_task_on_deadline %>
+            </div>
+            <div class="field">
+              <%= f.label :task_finished_after_deadline %><br>
+              <%= f.number_field :h_task_after_deadline %>
+            </div>
+
+          </div>
+          <div style="width: 33%; float:left;">
+
+
+            <h3 >Normal Utilization</h3>
+            <div class="field" style="margin-top: 58px">
+              <%= f.label :task_finished_before_deadline %><br>
+              <%= f.number_field :n_task_before_deadline %>
+            </div>
+            <div class="field">
+              <%= f.label :task_finished_on_deadline %><br>
+              <%= f.number_field :n_task_on_deadline %>
+            </div>
+            <div class="field">
+              <%= f.label :task_finished_after_deadline %><br>
+              <%= f.number_field :n_task_after_deadline %>
+            </div>
+
+          </div>
+
+          <div style="width: 33%; float:left">
+            <h3 >Low Utilization</h3>
+            <div class="field">
+              <%= f.label :low_utilization %>(0% => MAX low utilization) <br>
+              <%= f.number_field :low_utilization %>
+            </div>
+            <div class="field">
+              <%= f.label :task_finished_before_deadline %><br>
+              <%= f.number_field :l_task_before_deadline %>
+            </div>
+            <div class="field">
+              <%= f.label :task_finished_on_deadline %><br>
+              <%= f.number_field :l_task_on_deadline %>
+            </div>
+            <div class="field">
+              <%= f.label :task_finished_after_deadline %><br>
+              <%= f.number_field :l_task_after_deadline %>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Time Recording Precision</legend>
+      <div class="container">
+        <div class="splitcontent">
+          <div class="field">
+            <%= f.label :time_record_point %><br>
+            <%= f.number_field :time_record_point %>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Presales</legend>
+      <div class="container">
+        <div class="splitcontent">
+          <div class="field">
+            <%= f.label 'Presales points per task' %><br>
+            <%= f.number_field :presales_point %>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Learning & Certification</legend>
+      <div class="container">
+        <div class="splitcontent">
+          <div class="field">
+            <%= f.label 'Learning points per 10 hours' %><br>
+            <%= f.number_field :learning_point %>
+          </div>
+          <div class="field">
+            <%= f.label 'Certification points per exam' %><br>
+            <%= f.number_field :certification_point %>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Profitability</legend>
+      <div class="container">
+        <div class="splitcontent">
+          <div class="field">
+            <%= f.label 'Profitability points ( > 25% )' %><br>
+            <%= f.number_field :profitability_point %>
+          </div>
+        <div class="field">
+            <%= f.label 'Profitability points ( < 25% )' %><br>
+            <%= f.number_field :profitability_point_inf %>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Support</legend>
+      <div class="container">
+        <div class="splitcontent">
+          <div class="field">
+            <%= f.label 'Reopened Tickets points (< 5%)' %><br>
+            <%= f.number_field :reopened_ticket_point %>
+          </div>
+        <div class="field">
+            <%= f.label 'Time to close points (avg < 7 days)' %><br>
+            <%= f.number_field :closed_ticket_point %>
+          </div>
+        <div class="field">
+            <%= f.label 'Time To Start ( < 1 day)' %><br>
+            <%= f.number_field :one_day_started_ticket_point %>
+          </div>
+        <div class="field">
+            <%= f.label 'Time To Start ( < 2 days)' %><br>
+            <%= f.number_field :two_day_started_ticket_point %>
+          </div>
+        <div class="field">
+            <%= f.label 'Time To Start ( < 3 days)' %><br>
+            <%= f.number_field :three_day_started_ticket_point %>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <%= f.submit %>
+    </div>
+<% end %>

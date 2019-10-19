@@ -1,0 +1,56 @@
+<div class="contextual">
+  <%= link_to 'New Kpi setting', new_kpi_setting_path, class: 'icon icon-add' %>
+</div>
+<h2>Listing KPIs Settings</h2>
+<div style="overflow-x: scroll">
+  <table class="table list">
+    <thead>
+    <tr>
+      <th></th>
+      <th colspan="3">High Utilization</th>
+      <th colspan="3">Normal Utilization</th>
+      <th colspan="3">Low Utilization</th>
+      <th>Time Record POINT</th>
+      <th>Presale POINTS/Task</th>
+      <th colspan="3"></th>
+    </tr>
+    <tr>
+      <th>Effective date</th>
+      <th>Task finished before deadline</th>
+      <th>Task finished on deadline</th>
+      <th>Task finished after deadline</th>
+      <th>Task finished before deadline</th>
+      <th>Task finished on deadline</th>
+      <th>Task finished after deadline</th>
+      <th>Task finished before deadline</th>
+      <th>Task finished on deadline</th>
+      <th>Task finished after deadline</th>
+      <th></th>
+      <th></th>
+      <th colspan="3"></th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <% @kpi_settings.each_with_index do |kpi_setting, index| %>
+        <tr>
+          <td><%= kpi_setting.effective_date %></td>
+          <td><%= kpi_setting.h_task_before_deadline %></td>
+          <td><%= kpi_setting.h_task_on_deadline %></td>
+          <td><%= kpi_setting.h_task_after_deadline %></td>
+          <td><%= kpi_setting.n_task_before_deadline %></td>
+          <td><%= kpi_setting.n_task_on_deadline %></td>
+          <td><%= kpi_setting.n_task_after_deadline %></td>
+          <td><%= kpi_setting.l_task_before_deadline %></td>
+          <td><%= kpi_setting.l_task_on_deadline %></td>
+          <td><%= kpi_setting.l_task_after_deadline %></td>
+          <td><%= kpi_setting.time_record_point %></td>
+          <td><%= kpi_setting.presales_point %></td>
+          <td><%= link_to 'Show', kpi_setting %></td>
+          <td><%= (index == @kpi_settings.count - 1) ?  link_to( 'Edit', edit_kpi_setting_path(kpi_setting)) : '' %></td>
+          <td><%= (index == @kpi_settings.count - 1) ?   link_to( 'Delete', kpi_setting, method: :delete, data: { confirm: 'Are you sure?' }) : '' %></td>
+        </tr>
+    <% end %>
+    </tbody>
+  </table>
+</div>

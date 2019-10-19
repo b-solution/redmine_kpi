@@ -1,0 +1,95 @@
+<% if User.current.allowed_to_globally?(:view_others, {}) %>
+    <div>
+      <%= select_tag :user_id, options_for_select(User.active.order('firstname ASC').map {|user| [user.name, user.id]},
+                                                  selected: (params[:user_id] || User.current.id)) %>
+    </div>
+<% end %>
+<fieldset>
+  <div>
+    <div style="width: 130px; float: left">
+      <label>Covered Period:</label>
+    </div>
+
+    <div style=" width: 80%; float: left">
+      <p>
+
+        <%= radio_button_tag :use_select, 'true', params[:use_select] == 'true' %>
+        <% times = [[]] %>
+        <%= select_tag(:times_choice, options_for_select([
+                                                             ['H2 of this year', 1],
+                                                             ['H1 of this year', 11],
+                                                             ['H1 of last year', 2],
+                                                             ['H2 of last year', 22],
+                                                             ['First quarter', 3],
+                                                             ['Last quarter', 4],
+                                                             ['This month', 5]
+                                                         ],
+                                                         selected: params[:times_choice])) %>
+
+      </p>
+      <p>
+        <%= radio_button_tag :use_select, 'false', params[:use_select] != 'true' %>
+        <label>From</label>
+        <%= date_field_tag :date_from, params[:date_from].try(:to_date) %>
+
+        <label>To</label>
+        <%= date_field_tag :date_to, params[:date_to].try(:to_date) %>
+      </p>
+    </div>
+
+  </div>
+
+
+  <script>
+      $(document).ready(function () {
+          $('#times_choice').on('change', function () {
+              value = $(this).val();
+              date_from = ''
+              date_to = ''
+              switch (value) {
+                  case '1':
+                  <% if Date.today.month > 6 %>
+                      date_from = '<%=  (Date.today.beginning_of_year + 6.months).beginning_of_month.strftime('%Y-%m-%d') %>'
+                      date_to = '<%= (Date.today.end_of_year).strftime('%Y-%m-%d') %>';
+
+                  <% else %>
+                      date_from = '<%=  (Date.today.beginning_of_year).strftime('%Y-%m-%d') %>'
+                      date_to = '<%=  (Date.today.beginning_of_year + 5.months).beginning_of_month.strftime('%Y-%m-%d') %>';
+
+                  <% end %>
+                      break;
+                   case '11':
+                      date_from = '<%=  Date.today.beginning_of_year.strftime('%Y-%m-%d') %>'
+                      date_to = '<%= (Date.today.beginning_of_year + 5.months).end_of_month.strftime('%Y-%m-%d') %>';
+                      break;
+                  case '2':
+                      date_from = '<%= ( Date.today.beginning_of_year - 1.year).strftime('%Y-%m-%d')   %>'
+                      date_to = '<%= (Date.today.beginning_of_year - 1.year + 5.months).end_of_month.strftime('%Y-%m-%d') %>';
+                      break;
+                  case '22':
+                      date_from = '<%= (Date.today.beginning_of_year - 1.year + 6.months + 1.day).strftime('%Y-%m-%d')   %>'
+                      date_to = '<%= (Date.today.beginning_of_year - 1.day).strftime('%Y-%m-%d') %>';
+                      break;
+                  case '3':
+                      date_from = '<%= (Date.today.beginning_of_month  - 3.months).strftime('%Y-%m-%d')   %>'
+                      date_to = '<%= (Date.today.beginning_of_month - 1.months).end_of_month.strftime('%Y-%m-%d') %>';
+                      break;
+                  case "4":
+                      date_from = '<%= (Date.today.beginning_of_month  - 3.months).strftime('%Y-%m-%d')   %>'
+                      date_to = '<%= (Date.today.beginning_of_month - 1.months).end_of_month.strftime('%Y-%m-%d') %>';
+                      break;
+                  case "5":
+                      date_from = '<%= (Date.today.beginning_of_month).strftime('%Y-%m-%d')   %>'
+                      date_to = '<%= (Date.today).end_of_month.strftime('%Y-%m-%d')  %>';
+                      break;
+                  default:
+
+
+              }
+              $('#date_from').val(date_from);
+              $('#date_to').val(date_to);
+          })
+      })
+  </script>
+
+</fieldset>

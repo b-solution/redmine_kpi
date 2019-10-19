@@ -1,0 +1,13 @@
+<h1 style="margin: 0;">
+  Time <br/>Recording
+</h1>
+<hr/>
+<p>
+  <span style="font-size: 44px; color: <%= get_promptness_color(average_timerecord.to_i , target_timerecord.to_i )%>" >
+  <%= (average_timerecord.to_f / month_count).round(3) %>
+  </span>
+</p>
+
+<h4 style="margin-top: 25px">
+  Target: <%= (target_timerecord.to_f / month_count).round(3) %>
+</h4>

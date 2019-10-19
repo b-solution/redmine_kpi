@@ -1,0 +1,56 @@
+<% if User.current.allowed_to?(:log_time, @project) %>
+    <%= labelled_fields_for :time_entry, @time_entry do |time_entry| %>
+        <% if @time_entry and @time_entry.issue_id.to_s == Setting.plugin_redmine_kpi['issue_for_time_recording'] %>
+
+            <p id="time_entry_original_task">
+              <%= time_entry.text_field :origin_issue_id, :required => true %>
+              <script>
+                  observeAutocompleteField('time_entry_origin_issue_id',
+                      function(request, callback) {
+                          var url = '<%= j auto_complete_issues_path %>';
+                          var data = {
+                              term: request.term
+                          };
+
+
+                          data['scope'] = 'all';
+                          $.get(url, data, null, 'json')
+                              .done(function(data){
+                                  callback(data);
+                              })
+                              .fail(function(jqXHR, status, error){
+                                  callback([]);
+                              });
+                      },
+                      {
+                          select: function(event, ui) {
+                              $('#time_entry_origin_issue_id').val(ui.item.value).change();
+                          }
+                      }
+                  );
+                  $('#time_entry_original_task').prependTo('#container_time_entry')
+                  $('#time_entry_original_task').prependTo('.timeentry-hours-inputs')
+              </script>
+            </p>
+        <% end %>
+
+    <% end %>
+<% end %>
+<% if time_entry.spent_on.try(:to_date) != Date.today %>
+  <p id="time_entry_hours_div" style="background-color: yellow; color: red;">
+    <b>Attention: </b>Time recorded on a previous date is subject to management approval.
+  </p>
+  <script>
+      $(function(){
+          $('#time_entry_hours_div').detach().insertAfter($('#spent_on'))
+      })
+
+  </script>
+<% end %>
+<script>
+    $(function(){
+        <% unless User.current.allowed_to_globally?(:approve_time_entry, {}) %>
+          $('#time_entry_custom_field_values_<%=  Setting.plugin_redmine_kpi['approval_custom_field'] %>_').parents('p').remove();
+        <% end %>
+    })
+</script>
