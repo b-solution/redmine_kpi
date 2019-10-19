@@ -53,7 +53,10 @@
         <% #For time record %>
         <% scope = TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', date_begin,  date_begin.end_of_month ) %>
         <% tes = (scope.where.not(origin_issue_id: nil) + scope.where(origin_issue_id: nil).where(issue_id: @issue.try(:id) )).flatten.compact %>
-        <% average_timerecord += ((violation_time_record - tes.count) < 0 ? 0 : time_record_point  )%>
+    <% tes_bis = scope.where('Date(spent_on) != Date(created_on)').where.not(id: tes.pluck(:id)) %>
+    <% total_tes = (tes + tes_bis).flatten.compact.uniq %>
+    <%= total_tes.count %>
+        <% average_timerecord += ((violation_time_record - total_tes.count) < 0 ? 0 : time_record_point  )%>
         <% target_timerecord +=  time_record_point  %>
 
 

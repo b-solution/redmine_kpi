@@ -16,7 +16,7 @@
         <thead>
         <tr>
           <th> Months</th>
-          <th> Time recorded count in task <%= Setting.plugin_redmine_kpi['issue_for_time_recording'] %></th>
+          <th> Time recorded count in task <%= Setting.plugin_redmine_kpi['issue_for_time_recording'] %> + Time recorded with spent on date <> Day created</th>
           <th> KPI points</th>
 
         </tr>
@@ -30,11 +30,13 @@
           <td class="time_recorded">
             <% scope = TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', date_begin,  date_begin.end_of_month ) %>
             <% tes = (scope.where.not(origin_issue_id: nil) + scope.where(origin_issue_id: nil).where(issue_id: @issue.try(:id) )).flatten.compact %>
-            <%= tes.count %>
+            <% tes_bis = scope.where('Date(spent_on) != Date(created_on)').where.not(id: tes.pluck(:id)) %>
+            <% total_tes = (tes + tes_bis).flatten.compact.uniq %>
+            <%= total_tes.count %>
           </td>
           <td class="kpi_point">
             <% time_record_point =  kpi_finder(date_begin).time_record_point.to_i %>
-            <%= (Setting.plugin_redmine_kpi['violation_time_record'].to_i - tes.count) < 0 ? 0 : time_record_point %>
+            <%= (Setting.plugin_redmine_kpi['violation_time_record'].to_i - total_tes.count) < 0 ? 0 : time_record_point %>
           </td>
         </tr>
             <% date_begin = date_begin.end_of_month + 1.days %>
