@@ -22,6 +22,7 @@ Redmine::Plugin.register :redmine_kpi do
   class RedmineKpiHook < Redmine::Hook::ViewListener
     render_on  :view_timelog_edit_form_bottom, :partial=> 'timelog/show_issue_origin_in_time_entry'
     render_on  :view_issues_edit_notes_bottom, :partial=> 'timelog/show_issue_origin'
+    render_on  :timelog_form_spent_on_bottom, :partial=> 'timelog/show_issue_origin_in_time_entry'
     render_on  :view_issues_show_details_bottom, :partial=> 'issues/show_approved_hour'
     render_on  :view_issues_form_details_after_time_entries, :partial=> 'issues/edit_approved_hour'
 
