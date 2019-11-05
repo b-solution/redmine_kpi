@@ -32,9 +32,15 @@
     </p>
 <% end %>
 <% if time_entry.spent_on.try(:to_date) != Date.today %>
+  <% if params[:show_error_message].blank?
+       params[:show_error_message] = '1' %>
     <p id="time_entry_hours_div" style="background-color: yellow; color: red; padding-left: 0">
-     <b>Attention: </b>Time recorded on a previous date is subject to management approval.
+
+        <b>Attention: </b>Time recorded on a previous date is subject to management approval.
+
+
     </p>
+  <% end  %>
   <script>
       $(function(){
           $('#time_entry_hours_div').detach().insertAfter($('#spent_on'))
