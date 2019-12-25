@@ -46,79 +46,79 @@
         console.log('Average: <%= average%>')
     </script>
 
-    <% while date_begin < date_end %>
-        <% time_record_point =  kpi_finder(date_begin).time_record_point.to_i %>
-        <% month_count += 1 %>
+  <% while date_begin < date_end %>
+    <% time_record_point =  kpi_finder(date_begin).time_record_point.to_i %>
+    <% month_count += 1 %>
 
-        <% #For time record %>
-        <% scope = TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', date_begin,  date_begin.end_of_month ) %>
-        <% tes = (scope.where.not(origin_issue_id: nil) + scope.where(origin_issue_id: nil).where(issue_id: @issue.try(:id) )).flatten.compact %>
-    <% tes_bis = scope.where('Date(spent_on) != Date(created_on)').where.not(id: tes.pluck(:id)) %>
+    <% #For time record %>
+    <% scope = TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', date_begin,  date_begin.end_of_month ) %>
+    <% tes = (scope.where.not(origin_issue_id: nil) + scope.where(origin_issue_id: nil).where(issue_id: @issue.try(:id) )).flatten.compact %>
+    <% tes_bis = scope.where.not(id: tes.pluck(:id)).reject{|t| t.spent_on.to_date == t.created_on.to_date } %>
     <% total_tes = (tes + tes_bis).flatten.compact.uniq %>
-    <%= total_tes.count %>
-        <% average_timerecord += ((violation_time_record - total_tes.count) < 0 ? 0 : time_record_point  )%>
-        <% target_timerecord +=  time_record_point  %>
+    <% total_tes.count %>
+    <% average_timerecord += ((violation_time_record - total_tes.count) < 0 ? 0 : time_record_point  )%>
+    <% target_timerecord +=  time_record_point  %>
 
 
-        <% # Incrementation %>
-        <% date_begin = date_begin.end_of_month + 1.days %>
-    <% end %>
-    <% #For presale %>
-    <% issues  = Issue.joins(:time_entries, :journals).
-        where(time_entries: {user_id: @user.id}).
-        where(project_id: @projects.map(&:id)).
-        where(status_id: Setting.plugin_redmine_kpi['presales_status'] ).
-        where('journals.created_on  = (SELECT MAX(journals.created_on) FROM journals INNER JOIN journal_details ON journal_details.journal_id = journals.id WHERE (journals.journalized_id = issues.id AND journals.journalized_type = "Issue") AND `journal_details`.`prop_key` = "status_id")').
-        where('journals.created_on BETWEEN ? AND ?', @date_from,  @date_to.end_of_month ).uniq
-    %>
+    <% # Incrementation %>
+    <% date_begin = date_begin.end_of_month + 1.days %>
+  <% end %>
+  <% #For presale %>
+  <% issues  = Issue.joins(:time_entries, :journals).
+      where(time_entries: {user_id: @user.id}).
+      where(project_id: @projects.map(&:id)).
+      where(status_id: Setting.plugin_redmine_kpi['presales_status'] ).
+      where('journals.created_on  = (SELECT MAX(journals.created_on) FROM journals INNER JOIN journal_details ON journal_details.journal_id = journals.id WHERE (journals.journalized_id = issues.id AND journals.journalized_type = "Issue") AND `journal_details`.`prop_key` = "status_id")').
+      where('journals.created_on BETWEEN ? AND ?', @date_from,  @date_to.end_of_month ).uniq
+  %>
 
-    <% presales_point_target =  kpi_finder(date_begin).presales_point.to_i %>
-    <% average_presales += (presales_point_target * issues.length)  %>
+  <% presales_point_target =  kpi_finder(date_begin).presales_point.to_i %>
+  <% average_presales += (presales_point_target * issues.length)  %>
 
-    <div style="overflow: hidden; width: 100%">
-      <h2>Utilization</h2>
-      <div class="box_container">
-        <%= render partial: '/kpi/index_partials/show_billables', locals: {utilization: utilization} %>
-      </div>
-      <div class="box_container">
-        <% @support_projects = Project.where(id: Setting.plugin_redmine_kpi['support_projects']).map(&:self_and_descendants).flatten.compact %>
-        <% support_hours_billable =  TimeEntry.where(user_id: @user.id).where(project_id: @support_projects.map(&:id)).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
-        <% support_total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
-        <% support_utilization =  support_total_hours.zero? ? 0 : ((support_hours_billable.to_f/support_total_hours).round(3).to_f * 100) %>
-
-        <%= render partial: '/kpi/index_partials/show_support_billables', locals: {support_utilization: support_utilization} %>
-      </div>
-      <div class="box_container">
-        <% non_billable_hours =  TimeEntry.where(user_id: @user.id).where.not(project_id: [@support_projects, @billable_projects].flatten.map(&:id)).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
-        <% non_billable_total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
-        <% non_billable_utilization =  non_billable_total_hours.zero? ? 0 : ((non_billable_hours.to_f/non_billable_total_hours).round(3).to_f * 100) %>
-
-        <%= render partial: '/kpi/index_partials/show_non_billables', locals: {non_billable_utilization: non_billable_utilization} %>
-      </div>
-      <span id="total_future_container">
-
-      </span>
+  <div style="overflow: hidden; width: 100%">
+    <h2>Utilization</h2>
+    <div class="box_container">
+      <%= render partial: '/kpi/index_partials/show_billables', locals: {utilization: utilization} %>
     </div>
-    <hr/>
-    <div style="overflow: hidden; width: 100%">
-      <div class="box_container">
-        <%= render partial: '/kpi/index_partials/promptness', locals: {utilization: utilization} %>
-      </div>
-      <div class="box_container">
-        <%= render partial: '/kpi/index_partials/profitability',  locals: {average: profitability, total_hours_estimated: total_hours_estimated, total_hours_done: total_hours_done} %>
-      </div>
-      <div class="box_container">
-        <%= render partial: '/kpi/index_partials/support',  locals: {} %>
-      </div>
-      <div class="box_container">
-        <% presales_point =  Setting.plugin_redmine_kpi['max_threshold'] ? (average_presales.to_i.zero? ? 0 : presales_point_target) : average_presales %>
+    <div class="box_container">
+      <% @support_projects = Project.where(id: Setting.plugin_redmine_kpi['support_projects']).map(&:self_and_descendants).flatten.compact %>
+      <% support_hours_billable =  TimeEntry.where(user_id: @user.id).where(project_id: @support_projects.map(&:id)).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+      <% support_total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+      <% support_utilization =  support_total_hours.zero? ? 0 : ((support_hours_billable.to_f/support_total_hours).round(3).to_f * 100) %>
 
-        <%= render partial: '/kpi/index_partials/presales', locals: {presales_point_target: presales_point_target, presales_point: presales_point, average_presales: average_presales} %>
-      </div>
+      <%= render partial: '/kpi/index_partials/show_support_billables', locals: {support_utilization: support_utilization} %>
+    </div>
+    <div class="box_container">
+      <% non_billable_hours =  TimeEntry.where(user_id: @user.id).where.not(project_id: [@support_projects, @billable_projects].flatten.map(&:id)).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+      <% non_billable_total_hours =  TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', @date_from, @date_to).sum(:hours) %>
+      <% non_billable_utilization =  non_billable_total_hours.zero? ? 0 : ((non_billable_hours.to_f/non_billable_total_hours).round(3).to_f * 100) %>
+
+      <%= render partial: '/kpi/index_partials/show_non_billables', locals: {non_billable_utilization: non_billable_utilization} %>
+    </div>
+    <span id="total_future_container">
+
+    </span>
+  </div>
+  <hr/>
+  <div style="overflow: hidden; width: 100%">
+    <div class="box_container">
+      <%= render partial: '/kpi/index_partials/promptness', locals: {utilization: utilization} %>
+    </div>
+    <div class="box_container">
+      <%= render partial: '/kpi/index_partials/profitability',  locals: {average: profitability, total_hours_estimated: total_hours_estimated, total_hours_done: total_hours_done} %>
+    </div>
+    <div class="box_container">
+      <%= render partial: '/kpi/index_partials/support',  locals: {} %>
+    </div>
+    <div class="box_container">
+      <% presales_point =  Setting.plugin_redmine_kpi['max_threshold'] ? (average_presales.to_i.zero? ? 0 : presales_point_target) : average_presales %>
+
+      <%= render partial: '/kpi/index_partials/presales', locals: {presales_point_target: presales_point_target, presales_point: presales_point, average_presales: average_presales} %>
+    </div>
 
 
-      <div class="box_container">
-        <%= render partial: '/kpi/index_partials/time_record', locals: {target_timerecord: target_timerecord,
+    <div class="box_container">
+      <%= render partial: '/kpi/index_partials/time_record', locals: {target_timerecord: target_timerecord,
                                                                         average_timerecord: average_timerecord,
                                                                         month_count: month_count} %>
       </div>

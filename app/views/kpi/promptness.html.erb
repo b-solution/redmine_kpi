@@ -125,7 +125,10 @@
 
               $('#target').html('<%= points %>')
           }
-          calcul_kpi()
+          $(function(){
+              calcul_kpi()
+          })
+
       </script>
   <% end %>
 </div>

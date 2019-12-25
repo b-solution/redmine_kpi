@@ -16,7 +16,8 @@
         <thead>
         <tr>
           <th> Months</th>
-          <th> Time recorded count in task <%= Setting.plugin_redmine_kpi['issue_for_time_recording'] %> + Time recorded with spent on date <> Day created</th>
+          <th> Time recorded count in task <%= Setting.plugin_redmine_kpi['issue_for_time_recording'] %> </th>
+          <th> Time recorded with spent on date <> Day created</th>
           <th> KPI points</th>
 
         </tr>
@@ -29,14 +30,41 @@
           <td><%= date_begin.to_date.strftime('%B %Y') %></td>
           <td class="time_recorded">
             <% scope = TimeEntry.where(user_id: @user.id).where('spent_on BETWEEN ? AND ?', date_begin,  date_begin.end_of_month ) %>
-            <% tes = (scope.where.not(origin_issue_id: nil) + scope.where(origin_issue_id: nil).where(issue_id: @issue.try(:id) )).flatten.compact %>
-            <% tes_bis = scope.where('Date(spent_on) != Date(created_on)').where.not(id: tes.pluck(:id)) %>
-            <% total_tes = (tes + tes_bis).flatten.compact.uniq %>
-            <%= total_tes.count %>
+            <% scope_tes = (scope.where.not(origin_issue_id: nil) + scope.where(origin_issue_id: nil).where(issue_id: @issue.try(:id) )) %>
+            <% tes = (scope.where.not(origin_issue_id: nil) + scope.where(origin_issue_id: nil).where(issue_id: @issue.try(:id) )).flatten.compact.uniq.count %>
+            <%= tes %>
+          </td>
+          <td>
+            <% tes_bis_scope = scope.where.not(id: scope_tes.pluck(:id)).reject{|t| t.spent_on.to_date == t.created_on.to_date } %>
+            <% tes_bis = tes_bis_scope.compact.uniq.count  %>
+            <%= tes_bis%>
+            <br/>
+            <%= link_to t('button_show'), '#', onclick: "$('#time_recorded_#{date_begin.to_date.to_s}').toggle()" %>
+            <span id="time_recorded_<%= date_begin.to_date.to_s %>" style="display: none">
+              <table >
+                <thead> <tr>
+                  <th><%= t('label_issue') %></th>
+                  <th><%= t('label_user') %></th>
+                  <th><%= t('field_spent_on') %></th>
+                  <th><%= t('field_created_on') %></th>
+                </tr></thead>
+                <tbody>
+                <% tes_bis_scope.each do |time_entry| %>
+                <tr>
+                  <td><%= link_to_issue time_entry.issue %></td>
+                  <td><%= link_to_user time_entry.user %></td>
+                  <td><%= format_date time_entry.spent_on %></td>
+                  <td><%= format_date time_entry.created_on %></td>
+                </tr>
+                <% end %>
+                </tbody>
+              </table>
+            </span>
           </td>
           <td class="kpi_point">
-            <% time_record_point =  kpi_finder(date_begin).time_record_point.to_i %>
-            <%= (Setting.plugin_redmine_kpi['violation_time_record'].to_i - total_tes.count) < 0 ? 0 : time_record_point %>
+            <% total_tes = tes + tes_bis %>
+            <% time_record_point = kpi_finder(date_begin).time_record_point.to_i %>
+            <%= (Setting.plugin_redmine_kpi['violation_time_record'].to_i - total_tes) < 0 ? 0 : time_record_point %>
           </td>
         </tr>
             <% date_begin = date_begin.end_of_month + 1.days %>
