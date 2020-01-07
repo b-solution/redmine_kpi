@@ -10,3 +10,15 @@
     <% end %>
     </p>
 <% end %>
+
+<script>
+  $(function(){
+      <%      cf_setting = Setting.plugin_redmine_request_change_deadline['custom_field']
+        request_issue_status = Setting.plugin_redmine_request_change_deadline['issue_status']
+        if request_issue_status.include?(@issue.status_id.to_s) %>
+      $('#issue_due_date').on('change', function(){
+          $('#issue_custom_field_values_<%= cf_setting.first %>_').val( $('#issue_due_date').val())
+      })
+      <% end %>
+  })
+</script>
