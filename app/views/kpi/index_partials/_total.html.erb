@@ -15,7 +15,7 @@
   <% actual += presales_point %>
   <span style="font-size: 44px; color: <%= get_promptness_color(actual.to_i , target.to_i )%>" >
 
-    <%= actual %>
+    <%= actual.round(1) %>
 </span>
 </p>
 

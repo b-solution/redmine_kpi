@@ -1,6 +1,7 @@
 <% issues = Issue.where(project_id: @support_projects.map(&:id)).
     joins(:time_entries).
     where(time_entries: {user_id: @user.id}).
+    where(status_id: [3,5]).
     where("start_date BETWEEN ? AND ?", @date_from, @date_to).uniq %>
 <% @kpi_setting  = kpi_finder(@date_from) %>
 <h2>Time To Start</h2>
